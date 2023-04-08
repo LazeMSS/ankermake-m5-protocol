@@ -5,7 +5,7 @@ import contextlib
 
 from datetime import datetime, timedelta
 from enum import Enum
-from flask import Flask, request, render_template, Response
+from flask import Flask, request, render_template, Response, abort
 from flask_sock import Sock
 
 from threading import Thread, Event
@@ -16,6 +16,8 @@ from libflagship.pppp import P2PSubCmdType, P2PCmdType
 from libflagship.ppppapi import FileUploadInfo, PPPPError, FileTransfer
 
 import cli.mqtt
+
+import os.path as ospath
 
 
 app = Flask(
@@ -251,7 +253,7 @@ def ctrl(sock):
 
 
 @app.get("/video")
-def video2():
+def videostream():
 
     def generate():
         queue = Queue()
@@ -269,17 +271,24 @@ def video2():
     return Response(generate(), mimetype='video/mp4')
 
 
-@app.get("/")
-def app_root():
+# Generic webhandler
+@app.route('/', defaults={'req_path': 'index.html'})
+@app.route('/<path:req_path>')
+def app_generic(req_path):
+    abs_path = ospath.join(ospath.dirname(__file__),app.template_folder, req_path)
+    if not ospath.exists(abs_path) or not ospath.isfile(abs_path):
+        return abort(404)
     return render_template(
-        "index.html",
+        req_path,
         configPort=app.config["port"],
         configHost=app.config["host"]
     )
 
 
+
+# Octoprint api version faker
 @app.get("/api/version")
-def app_api_version():
+def app_octoapi_version():
     return {
         "api": "0.1",
         "server": "1.9.0",
@@ -287,8 +296,9 @@ def app_api_version():
     }
 
 
+# Octoprint api files upload faker
 @app.post("/api/files/local")
-def app_api_files_local():
+def app_octoapi_files_local():
     config = app.config["config"]
 
     user_name = request.headers.get("User-Agent", "ankerctl").split("/")[0]

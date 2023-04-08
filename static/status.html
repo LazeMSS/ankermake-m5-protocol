@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html data-bs-theme="dark" lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1" name="viewport">
+    <title>ankerctl</title>
+    <link href="/static/vendor/bootstrap-5.3.0-alpha3-dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container my-3">
+        <div class="row g-4">
+            <div class="col-12">
+                <div class="row g-3">
+                    <div class="col-12 col-md-6">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <div id="tempChart" class="w-100 position-relative h-100 "></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <video class="w-100 rounded-3" playsinline autoplay muted id="player"></video>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="/static/vendor/bootstrap-5.3.0-alpha3-dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/vendor/jmuxer.min.js"></script>
+    <script src="/static/vendor/cash.min.js"></script>
+    <script src="/static/vendor/echarts.min.js"></script>
+    <script src="/static/ankersrv.js"></script>
+</body>
+</html>
