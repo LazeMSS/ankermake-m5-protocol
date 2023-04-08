@@ -165,4 +165,9 @@ $(function () {
 
     wsctrl = new WebSocket("ws://" + location.host + "/ws/ctrl");
 
+    $('[data-light-control]').on('click', function() {
+        wsctrl.send(JSON.stringify({"light": $(this).data('light-control')}));
+        return false;
+    });
+
 });
