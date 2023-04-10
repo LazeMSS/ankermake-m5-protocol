@@ -90,7 +90,7 @@ function WebSocketHandler(data){
                         }
                     }
                     li.find('div>h5').html(val.name);
-                    li.find('p').html(val.name);
+                    li.find('p').html(val.path);
                     li.find('div>small').html(new Date(val.timestamp*1000).toLocaleString());
                     ul.append(li.clone());
                 });
