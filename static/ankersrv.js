@@ -32,11 +32,11 @@ function WebSocketHandler(data){
             let newSeries = [];
             if ('currentTemp' in jsonData){
                 temperatures.extruder.actual.push([now,(jsonData.currentTemp/100)]);
-                newSeries.push({'name':'E current','data':temperatures.extruder.actual});
+                newSeries.push({'id':'ecur','data':temperatures.extruder.actual});
             }
             if ('targetTemp' in jsonData){
                 temperatures.extruder.target.push([now,(jsonData.targetTemp/100)]);
-                newSeries.push({'name':'E target','data':temperatures.extruder.target});
+                newSeries.push({'id':'etar','data':temperatures.extruder.target});
             }
             if (newSeries.length > 0){
                 tempChart.setOption({ 'series': newSeries });
@@ -48,14 +48,55 @@ function WebSocketHandler(data){
             let newSeries = [];
             if ('currentTemp' in jsonData){
                 temperatures.bed.actual.push([now,(jsonData.currentTemp/100)]);
-                newSeries.push({'name':'B current','data':temperatures.bed.actual});
+                newSeries.push({'id':'bcur','data':temperatures.bed.actual});
             }
             if ('targetTemp' in jsonData){
                 temperatures.bed.target.push([now,(jsonData.targetTemp/100)]);
-                newSeries.push({'name':'B target','data':temperatures.bed.target});
+                newSeries.push({'id':'btar','data':temperatures.bed.target});
             }
             if (newSeries.length > 0){
                 tempChart.setOption({ 'series': newSeries });
+            }
+        },
+
+         // bed temp data
+        '1052': function () {
+            if ('total_layer' in jsonData && 'real_print_layer' in jsonData){
+                let perLayer = (jsonData.total_layer / jsonData.real_print_layer)*100;
+                if (isNaN(perLayer)){
+                    perLayer = 0;
+                }else{
+                    perLayer = Math.round(perLayer);
+                }
+                $('#layerprogress').css('width',perLayer + "%");
+            }
+        },
+
+        // files data
+        '1009': function () {
+            if ('fileLists' in jsonData ){
+                let ul = $('<div class="list-group">');
+                let li = $('<a href="#" class="list-group-item list-group-item-action"><div class="d-flex w-100 justify-content-between"><h5 class="mb-1"></h5><small></small></div><p class="mb-1"></p></a>')
+                let fileList = JSON.parse(jsonData.fileLists);
+                let tarList = false
+                $.each(fileList,function(key,val){
+                    if (tarList == false){
+                        if (val.path.includes('/usr/data/local/model/')){
+                            tarList = 'filesprinter';
+                        }else if (val.path.includes('/tmp/udisk/udisk1/')){
+                            tarList = 'filesusb';
+                        }else{
+                            tarList = 'fileshost';
+                        }
+                    }
+                    li.find('div>h5').html(val.name);
+                    li.find('p').html(val.name);
+                    li.find('div>small').html(new Date(val.timestamp*1000).toLocaleString());
+                    ul.append(li.clone());
+                });
+                if (tarList !== false){
+                    $('#'+tarList + " > div").replaceWith(ul);
+                }
             }
         },
 
@@ -63,6 +104,16 @@ function WebSocketHandler(data){
              console.error('Unhandled commandType', jsonData);
         }
     };
+
+    let templates =  $('[data-cmd-template^="'+jsonData.commandType+':"]');
+    if (templates.length){
+        templates.each(function(){
+            let datKey = $(this).data('cmd-template').split(":")[1];
+            if (datKey in jsonData){
+                $(this).html(jsonData[datKey]);
+            }
+        })
+    }
 
     (cmdHandler[jsonData.commandType] || cmdHandler['errorType'])();
 }
@@ -77,7 +128,7 @@ $(function () {
     });
 
     // Build basic temp chart
-    tempChart = echarts.init(document.getElementById('tempChart'));
+    tempChart = echarts.init(document.getElementById('tempchart'));
     var option;
     option = {
         tooltip : {
@@ -99,34 +150,41 @@ $(function () {
                 nameGap: 15,
                 min: 0,
                 minInterval: 1,
-                type : 'value'
+                type : 'value',
+                nameTextStyle:{
+                    padding: [25, 4, 4, 50]
+                }
             }
         ],
         grid: {
-          left: '8%',
-          top: 30,
-          right: '5%',
-          bottom: 20
+          left: '6%',
+          top: 35,
+          right: '6%',
+          bottom: 35
         },
         series : [
             {
-                name:'E current',
+                id: 'ecur',
+                name:'Extruder current',
                 type:'line',
                 smooth:true,
             },
             {
-                name:'E target',
+                id: 'etar',
+                name:'Extruder target',
                 type:'line',
                 smooth:true,
             },
             {
-                name:'B current',
+                id: 'bcur',
+                name:'Bed current',
                 type:'line',
                 smooth:true,
                 data: []
             },
             {
-                name:'B target',
+                id: 'btar',
+                name:'Bed target',
                 type:'line',
                 smooth:true,
                 data: []
@@ -170,4 +228,19 @@ $(function () {
         return false;
     });
 
+    // Get files
+    $('#filenavbar button[data-bs-toggle="tab"]').each(function(){
+        this.addEventListener('shown.bs.tab', event => {
+            $($(event.target).data('bs-target')).html('<div class="text-center"><div class="spinner-border text-center" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+            fetch('/api/ankerctl/getFiles?type='+$(event.target).data('fileid'), {
+                method: 'get',
+                headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+                }
+            });
+        });
+    })
+    // Autload first
+    $('#filenavbar button[data-bs-toggle="tab"]').first()[0].dispatchEvent(new Event("shown.bs.tab"));
 });

@@ -15,6 +15,8 @@ from libflagship.util import enhex
 from libflagship.pppp import P2PSubCmdType, P2PCmdType
 from libflagship.ppppapi import FileUploadInfo, PPPPError, FileTransfer
 
+from libflagship.mqtt import MqttMsgType
+
 import cli.mqtt
 
 import os.path as ospath
@@ -284,6 +286,32 @@ def app_generic(req_path):
         configHost=app.config["host"]
     )
 
+
+# Get gcode files
+@app.get("/api/ankerctl/getFiles")
+def app_ankectl_mqttcmd():
+    ftype = int(request.args.get('type'))
+    if ftype is None:
+        ftype = 1
+
+    if ftype == -1:
+        return {
+            "fileLists": [
+                {
+                    "name": "fake.gcode",
+                    "path": "/tmp/fake.gcode",
+                    "timestamp": 1672581288
+                }
+            ]
+        };
+
+    client = cli.mqtt.mqtt_open(app.config["config"], True)
+    cmd = {
+        "commandType": MqttMsgType.ZZ_MQTT_CMD_FILE_LIST_REQUEST,
+        "value": ftype
+    }
+    cli.mqtt.mqtt_command(client, cmd)
+    return {'ranCMD':cmd};
 
 
 # Octoprint api version faker

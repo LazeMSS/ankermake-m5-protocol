@@ -1,60 +1,100 @@
 <!DOCTYPE html>
 <html data-bs-theme="dark" lang="en">
-
-<head>
-    <meta charset="utf-8">
-    <meta content="width=device-width, initial-scale=1" name="viewport">
-    <title>ankerctl</title>
-    <link href="/static/vendor/bootstrap-5.3.0-alpha3-dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-
-<body>
-    <div class="container my-3">
-        <div class="row g-4">
-            <div class="col-12">
-                <div class="row g-3">
-                    <div class="col-12 col-md-6 my-3">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <div id="tempChart" class="w-100 position-relative h-100 "></div>
+    <head>
+        <meta charset="utf-8">
+        <meta content="width=device-width, initial-scale=1" name="viewport">
+        <title>ankerctl</title>
+        <link href="/static/vendor/bootstrap-5.3.0-alpha3-dist/css/bootstrap.min.css" rel="stylesheet">
+    </head>
+    <body>
+        <div class="container my-3">
+            <div class="row g-4">
+                <div class="col-12">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6 my-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <div id="tempchart" class="w-100 position-relative mb-3" style="min-height: 300px;"></div>
+                                    <div>Nozzle temp: <div class="float-end">
+                                            <span data-cmd-template="1003:currentTemp"></span>/ <span data-cmd-template="1003:targetTemp"></span>
+                                        </div>
+                                    </div>
+                                    <div>Bed temp: <div class="float-end">
+                                            <span data-cmd-template="1004:currentTemp"></span>/ <span data-cmd-template="1004:targetTemp"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6 my-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <video class="w-100 rounded-3" playsinline autoplay muted id="player"></video>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-12 col-md-6 my-3">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <video class="w-100 rounded-3" playsinline autoplay muted id="player"></video>
+                </div>
+            </div>
+            <div class="row g-4">
+                <div class="col-12">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6 my-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <button data-light-control="true" class="btn btn-primary">💡 Light on</button>
+                                    <button data-light-control="false" class="btn btn-secondary">
+                                        <span class="opacity-25">💡</span> Light off </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6 my-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <div class="progress" role="progressbar">
+                                        <div class="progress-bar" id="layerprogress" style="width: 0px;"></div>
+                                    </div>
+                                    <div>Layer: <div class="float-end">
+                                            <span data-cmd-template="1052:real_print_layer"></span> / <span data-cmd-template="1052:total_layer"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row g-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <ul class="nav nav-tabs card-header-tabs" id="filenavbar">
+                                <li class="nav-item">
+                                    <button class="nav-link active" data-bs-toggle="tab" data-fileid="1" data-bs-target="#filesprinter" type="button" role="tab">Printer</button>
+                                </li>
+                                <li class="nav-item">
+                                    <button class="nav-link" data-bs-toggle="tab" data-fileid="0" data-bs-target="#filesusb" type="button" role="tab" >USB</button>
+                                </li>
+                                <li class="nav-item">
+                                    <button class="nav-link" data-bs-toggle="tab" data-fileid="-1" data-bs-target="#fileshost" type="button" role="tab" >Remote/host</button>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="card-body">
+                            <div class="tab-content">
+                                <div class="tab-pane fade show active" id="filesprinter" role="tabpanel" tabindex="0"><div class="text-center"><div class="spinner-border text-center" role="status"><span class="visually-hidden">Loading...</span></div></div></div>
+                                <div class="tab-pane fade" id="filesusb" role="tabpanel" tabindex="0"></div>
+                                <div class="tab-pane fade" id="fileshost" role="tabpanel" tabindex="0"></div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="row g-4">
-            <div class="col-12">
-                <div class="row g-3">
-                    <div class="col-12 col-md-6 my-3">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <button data-light-control="true" class="btn btn-primary" id="light-on">💡 Light on</button>
-                                <button data-light-control="false" class="btn btn-secondary" id="light-off"><span class="opacity-25">💡</span> Light off</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-12 col-md-6 my-3">
-                        <div class="card h-100">
-                            <div class="card-body">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <script src="/static/vendor/bootstrap-5.3.0-alpha3-dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/static/vendor/jmuxer.min.js"></script>
-    <script src="/static/vendor/cash.min.js"></script>
-    <script src="/static/vendor/echarts.min.js"></script>
-    <script src="/static/ankersrv.js"></script>
-</body>
+        <script src="/static/vendor/bootstrap-5.3.0-alpha3-dist/js/bootstrap.bundle.min.js"></script>
+        <script src="/static/vendor/jmuxer.min.js"></script>
+        <script src="/static/vendor/cash.min.js"></script>
+        <script src="/static/vendor/echarts.min.js"></script>
+        <script src="/static/ankersrv.js"></script>
+    </body>
 </html>
