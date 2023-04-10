@@ -301,6 +301,11 @@ def app_ankectl_mqttcmd():
                     "name": "fake.gcode",
                     "path": "/tmp/fake.gcode",
                     "timestamp": 1672581288
+                },
+                {
+                    "name": "fake2.gcode",
+                    "path": "/tmp/fake2.gcode",
+                    "timestamp": 1672580000
                 }
             ]
         };

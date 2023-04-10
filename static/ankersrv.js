@@ -12,6 +12,29 @@ let temperatures = {
 let tempChart = null;
 let wsctrl = null;
 
+function updateFileList(data,tarList){
+    let ul = $('<div class="list-group">');
+    let li = $('<a href="#" class="list-group-item list-group-item-action"><div class="d-flex w-100 justify-content-between"><h5 class="mb-1"></h5><small></small></div><p class="mb-1"></p></a>');
+    $.each(data,function(key,val){
+        if (tarList == false){
+            if (val.path.includes('/usr/data/local/model/')){
+                tarList = 'filesprinter';
+            }else if (val.path.includes('/tmp/udisk/udisk1/')){
+                tarList = 'filesusb';
+            }else{
+                tarList = 'fileshost';
+            }
+        }
+        li.find('div>h5').html(val.name);
+        li.find('p').html(val.path);
+        li.find('div>small').html(new Date(val.timestamp*1000).toLocaleString());
+        ul.append(li.clone());
+    });
+    if (tarList !== false){
+        $('#'+tarList + " > div").replaceWith(ul);
+    }
+}
+
 function WebSocketHandler(data){
     let jsonData = null;
     try {
@@ -75,28 +98,7 @@ function WebSocketHandler(data){
         // files data
         '1009': function () {
             if ('fileLists' in jsonData ){
-                let ul = $('<div class="list-group">');
-                let li = $('<a href="#" class="list-group-item list-group-item-action"><div class="d-flex w-100 justify-content-between"><h5 class="mb-1"></h5><small></small></div><p class="mb-1"></p></a>')
-                let fileList = JSON.parse(jsonData.fileLists);
-                let tarList = false
-                $.each(fileList,function(key,val){
-                    if (tarList == false){
-                        if (val.path.includes('/usr/data/local/model/')){
-                            tarList = 'filesprinter';
-                        }else if (val.path.includes('/tmp/udisk/udisk1/')){
-                            tarList = 'filesusb';
-                        }else{
-                            tarList = 'fileshost';
-                        }
-                    }
-                    li.find('div>h5').html(val.name);
-                    li.find('p').html(val.path);
-                    li.find('div>small').html(new Date(val.timestamp*1000).toLocaleString());
-                    ul.append(li.clone());
-                });
-                if (tarList !== false){
-                    $('#'+tarList + " > div").replaceWith(ul);
-                }
+                updateFileList(JSON.parse(jsonData.fileLists),false)
             }
         },
 
@@ -235,8 +237,19 @@ $(function () {
             fetch('/api/ankerctl/getFiles?type='+$(event.target).data('fileid'), {
                 method: 'get',
                 headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            }).then(response => {
+                if ('status' in response && response.status == 200){
+                    return response.json();
+                }
+                return null;
+            }).then(function(json) {
+                if (json != null){
+                    if ('fileLists' in json){
+                        updateFileList(json.fileLists,'fileshost');
+                    }
                 }
             });
         });
