@@ -6,10 +6,11 @@ import logging as log
 
 from multiprocessing import Pipe
 from datetime import datetime, timedelta
-from threading import Thread, Event
+from threading import Thread, Event, Lock
 from socket import AF_INET
 from dataclasses import dataclass
 
+from libflagship.cyclic import CyclicU16
 from libflagship.pppp import *
 
 PPPP_LAN_PORT = 32108
@@ -99,20 +100,22 @@ class Wire:
 
 class Channel:
 
-    def __init__(self, index, max_in_flight=64):
+    def __init__(self, index, max_in_flight=64, max_age_warn=128):
         self.index = index
         self.rxqueue = {}
         self.txqueue = []
         self.backlog = []
-        self.rx_ctr = 0
-        self.tx_ctr = 0
-        self.tx_ack = 0
+        self.rx_ctr = CyclicU16(0)
+        self.tx_ctr = CyclicU16(0)
+        self.tx_ack = CyclicU16(0)
         self.rx = Wire()
         self.tx = Wire()
         self.timeout = timedelta(seconds=0.5)
         self.acks = set()
         self.event = Event()
         self.max_in_flight = max_in_flight
+        self.max_age_warn = max_age_warn
+        self.lock = Lock()
 
     def rx_ack(self, acks):
         # remove all ACKed packets from transmission queue
@@ -131,7 +134,7 @@ class Channel:
     def rx_drw(self, index, data):
         # drop any packets we have already recieved
         if self.rx_ctr > index:
-            if self.rx_ctr - index > 100:
+            if self.max_age_warn and (self.rx_ctr - index > self.max_age_warn):
                 log.warn(f"Dropping old packet: index {index} while expecting {self.rx_ctr}.")
             return
 
@@ -141,7 +144,7 @@ class Channel:
         # recombine data from queue
         while self.rx_ctr in self.rxqueue:
             del self.rxqueue[self.rx_ctr]
-            self.rx_ctr = (self.rx_ctr + 1) & 0xFFFF
+            self.rx_ctr += 1
             self.rx.write(data)
 
     def poll(self):
@@ -189,7 +192,7 @@ class Channel:
             # schedule transmission in 1kb chunks
             data, pdata = pdata[:1024], pdata[1024:]
             self.backlog.append((deadline, self.tx_ctr, data))
-            self.tx_ctr = (self.tx_ctr + 1) & 0xFFFF
+            self.tx_ctr += 1
 
         tx_ctr_done = self.tx_ctr
 
@@ -366,18 +369,19 @@ class AnkerPPPPApi(Thread):
     def recv_xzyh(self, chan=1, timeout=None):
         fd = self.chans[chan]
 
-        hdr = fd.peek(16, timeout=timeout)
-        if not hdr:
-            return None
+        with fd.lock:
+            hdr = fd.peek(16, timeout=timeout)
+            if not hdr:
+                return None
 
-        xzyh = Xzyh.parse(hdr)[0]
+            xzyh = Xzyh.parse(hdr)[0]
 
-        data = fd.read(xzyh.len + 16, timeout=timeout)
-        if not data:
-            return None
+            data = fd.read(xzyh.len + 16, timeout=timeout)
+            if not data:
+                return None
 
-        xzyh.data = data[16:]
-        return xzyh
+            xzyh.data = data[16:]
+            return xzyh
 
     def recv_aabb(self, chan=1):
         fd = self.chans[chan]
